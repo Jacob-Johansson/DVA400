@@ -1,0 +1,61 @@
+%==========================================================================
+% Author: Gabriele Gualandi     Date: 2023/04     Ver: 1.0
+% Mälardalens University - Course in Industrial Robotics
+%==========================================================================
+samplingTime = 0.008;
+
+% This is equivalent of feeding in a "for loop" the values of timeInstants to function segmentAB.
+% However this is efficient.
+poly5_twoPoints = @(q_i, q_f, t_i, t_f, timeInstants) cell2mat(arrayfun(@(t_now) poly5PnP( q_i , q_f, t_i, t_f, t_now ),timeInstants,'UniformOutput',false)); 
+
+%% A-B
+pA = [2; 3];
+pB = [5; 6];
+t_iAB = 1;
+t_fAB = 4; % Duration of BA is 3 seconds
+
+%timeInstantsAB = [t_iAB :samplingTime: t_fAB];
+%valuesAB = poly5_twoPoints(pA , pB, t_iAB, t_fAB, timeInstantsAB);
+
+%% B-C
+pC = [5; 0];
+t_iBC = t_fAB; % time-continuity
+t_fBC = 8; % Duration of BC is 4 seconds
+
+%% C-A
+t_iCA = t_fBC; % time-continuity
+t_fCA = 9; % Duration of BC is 1 second
+
+%%
+timeInstantsABCA = [t_iAB :samplingTime: t_fCA - samplingTime];
+%%
+valuesAB_BC_CA = poly5_twoPoints(pA , pB, t_iAB, t_fAB, timeInstantsABCA) ...
+            + poly5_twoPoints(pB , pC, t_iBC, t_fBC, timeInstantsABCA) ...
+            +  poly5_twoPoints(pC , pA, t_iCA, t_fCA, timeInstantsABCA);
+
+figure
+tiledlayout(3,1)
+
+nexttile
+scatter(valuesAB_BC_CA(1,:),valuesAB_BC_CA(2,:));
+
+nexttile
+velocity_x = diff(valuesAB_BC_CA(1,:));
+velocity_y = diff(valuesAB_BC_CA(2,:));
+title('Velocity')
+plot(timeInstantsABCA[1:end-1],velocity_x);
+hold on
+plot(timeInstantsABCA[1:end-1],velocity_y);
+legend('vel_x','vel_y');
+hold off
+
+nexttile
+acceleration_x = diff(velocity_x);
+acceleration_y = diff(velocity_y);
+
+title('Acceleration')
+plot(acceleration_x);
+hold on
+plot(acceleration_y);
+legend('acc_x','acc_y');
+hold off
